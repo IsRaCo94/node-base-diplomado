@@ -15,7 +15,8 @@ app.use('/api/tasks', tasksRoutes);
 app.get('/', (req, res) => {
     res.status(200).json({
         status: 'online',
-        message: 'API del Diplomado funcionando correctamente',
+        message: 'Israel Bilbao - Diplomado Full Stack - Proyecto Final',
+        message2: 'API funcionando correctamente',
         docs: '/api/users, /api/login, /api/tasks'
     });
 });
