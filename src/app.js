@@ -1,12 +1,16 @@
 import express from 'express';
 import morgan from 'morgan';
-import usersRoutes from './routes/users.route.js'
+import usersRoutes from './routes/users.route.js';
+import authRoutes from './routes/auth.route.js';
+import tasksRoutes from './routes/tasks.route.js'; 
+
 const app = express();
 
-// Middlewares
 app.use(morgan('combined'));
+app.use(express.json());
 
-// Routes
-app.use('/', usersRoutes)
+app.use('/api/users', usersRoutes);
+app.use('/api/login', authRoutes);
+app.use('/api/tasks', tasksRoutes); 
 
 export default app;
