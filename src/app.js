@@ -12,5 +12,11 @@ app.use(express.json());
 app.use('/api/users', usersRoutes);
 app.use('/api/login', authRoutes);
 app.use('/api/tasks', tasksRoutes); 
-
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'online',
+        message: 'API del Diplomado funcionando correctamente',
+        docs: '/api/users, /api/login, /api/tasks'
+    });
+});
 export default app;
