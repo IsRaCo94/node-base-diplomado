@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: API con Express
+  title: API con Express-Diplomado Full Stack
   version: 1.0.0
-  description: Documentación de la API (Swagger + Express)
+  description: Documentación de la API Israel Bilbao cel 77758650
 servers:
   - url: https://node-base-diplomado-23u1.onrender.com
     description: Servidor de Producción (Render)
@@ -602,3 +602,9 @@ paths:
                         status:
                           type: string
                           example: active
+                          components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
