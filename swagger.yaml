@@ -1,0 +1,108 @@
+openapi: 3.0.0
+info:
+  title: API Proyecto Final Diplomado
+  description: Documentación de la API REST con Express, PostgreSQL y JWT
+  version: 1.0.0
+servers:
+  - url: /
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /api/users/list/pagination:
+    get:
+      summary: Obtiene la lista de usuarios con paginación y filtros (30 pts)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          schema:
+            type: string
+            default: id
+        - in: query
+          name: orderDir
+          schema:
+            type: string
+            default: DESC
+      responses:
+        '200':
+          description: JSON con total, página, páginas y datos
+  /api/users:
+    post:
+      summary: Crea un nuevo usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+  /api/login:
+    post:
+      summary: Endpoint de Login para obtener token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Retorna el token de acceso
+  /api/tasks:
+    post:
+      summary: Crea una nueva tarea (Ruta Protegida por JWT)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Tarea creada vinculada al usuario del token
+  /api/users/{id}/tasks:
+    get:
+      summary: Obtiene un usuario con todas sus tareas (Relación de tablas)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Retorna el nombre del usuario y su arreglo de tareas
