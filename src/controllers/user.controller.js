@@ -3,18 +3,28 @@ import bcrypt from 'bcrypt';
 
 const getUsersPaginated = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', orderBy = 'id', orderDir = 'DESC' } = req.query;
+    // 1. Recibimos todos los parámetros exactos que manda Swagger
+    const { page = 1, limit = 10, search = '', orderby = 'id', orderDir = 'DESC', status } = req.query;
     const offset = (page - 1) * limit;
-    const query = `
-      SELECT id, username, status FROM users
-      WHERE username ILIKE $1
-      ORDER BY ${orderBy} ${orderDir}
-      LIMIT $2 OFFSET $3
-    `;
-    const countQuery = `SELECT COUNT(*) FROM users WHERE username ILIKE $1`;
-    const values = [`%${search}%`, limit, offset];
-    const result = await pool.query(query, values);
-    const countResult = await pool.query(countQuery, [`%${search}%`]);
+
+    // 2. Armamos la consulta base
+    let query = `SELECT id, username, status FROM users WHERE username ILIKE $1`;
+    let countQuery = `SELECT COUNT(*) FROM users WHERE username ILIKE $1`;
+    const values = [`%${search}%`];
+
+    // 3. Si Swagger manda un status (ej. active), lo agregamos al filtro
+    if (status) {
+      values.push(status);
+      query += ` AND status = $${values.length}`;
+      countQuery += ` AND status = $${values.length}`;
+    }
+
+    // 4. Agregamos el ordenamiento y la paginación dinámica
+    query += ` ORDER BY ${orderby} ${orderDir} LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+    const queryValues = [...values, limit, offset];
+
+    const result = await pool.query(query, queryValues);
+    const countResult = await pool.query(countQuery, values);
     
     res.status(200).json({
       total: parseInt(countResult.rows[0].count),
