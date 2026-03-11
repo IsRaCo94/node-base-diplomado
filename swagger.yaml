@@ -492,12 +492,20 @@ paths:
       responses:
         '204':
           description: Tarea eliminada correctamente, sin contenido en la respuesta
-  /api/users/:id/tasks:
+  //api/users/{id}/tasks:
     get:
       tags:
         - Usuarios
       summary: Obtener usuario con sus tareas
       description: Obtiene la lista de usuario con sus tareas.
+      parameters:
+        - name: id
+          in: path
+          description: ID del usuario a consultar
+          required: true
+          schema:
+            type: integer
+            example: 1
       responses:
         '200':
           description: Lista de tareas
