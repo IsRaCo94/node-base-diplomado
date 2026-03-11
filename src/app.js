@@ -22,7 +22,12 @@ app.use('/api/users', usersRoutes);
 app.use('/api/login', authRoutes);
 app.use('/api/tasks', tasksRoutes);
 
-// 3. NUEVA RUTA: Aquí es donde el profesor verá la documentación
+// 3. RUTA: Aquí es donde se verá la documentación
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// 4. NUEVA REDIRECCIÓN: Redirige la ruta principal (/) directo al Swagger
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
 
 export default app;
