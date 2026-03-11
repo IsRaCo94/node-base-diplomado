@@ -1,51 +1,47 @@
 openapi: 3.0.0
 info:
-  title: API Proyecto Final Diplomado
-  description: Documentación de la API REST con Express, PostgreSQL y JWT
+  title: API con Express
   version: 1.0.0
+  description: Documentación de la API (Swagger + Express)
 servers:
-  - url: /
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+  - url: http://localhost:3000
 paths:
-  /api/users/list/pagination:
+  /api/users:
     get:
-      summary: Obtiene la lista de usuarios con paginación y filtros (30 pts)
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
-        - in: query
-          name: search
-          schema:
-            type: string
-        - in: query
-          name: orderBy
-          schema:
-            type: string
-            default: id
-        - in: query
-          name: orderDir
-          schema:
-            type: string
-            default: DESC
+      tags:
+        - Usuarios
+      summary: Obtener lista de usuarios
+      description: Obtiene la lista de usuarios con filtros opcionales y paginación.
       responses:
         '200':
-          description: JSON con total, página, páginas y datos
-  /api/users:
+          description: Lista paginada de usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 2
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        username:
+                          type: string
+                          example: ctrigo
+                        status:
+                          type: string
+                          example: ACTIVO
     post:
-      summary: Crea un nuevo usuario
+      tags:
+        - Usuarios
+      summary: Crear un nuevo usuario
+      description: Crea un usuario con username y password. Devuelve el usuario creado.
       requestBody:
         required: true
         content:
@@ -55,14 +51,48 @@ paths:
               properties:
                 username:
                   type: string
+                  example: user
                 password:
                   type: string
+                  example: password
+              required:
+                - username
+                - password
       responses:
-        '201':
-          description: Usuario creado exitosamente
+        '200':
+          description: Usuario creado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: user
+                  status:
+                    type: string
+                    example: ACTIVO
+                  password:
+                    type: string
+                    example: >-
+                      $2b$10$QjTqsJLp6iD/2njoEGqIr.rgUj0dCn49o6jIqf9/bzhXk/W/XLzIK
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: '2026-01-12T00:28:39.059Z'
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    example: '2026-01-12T00:28:39.059Z'
   /api/login:
     post:
-      summary: Endpoint de Login para obtener token JWT
+      tags:
+        - Auth
+      summary: Login de usuario
+      description: Autentica un usuario y devuelve un token JWT.
       requestBody:
         required: true
         content:
@@ -72,14 +102,217 @@ paths:
               properties:
                 username:
                   type: string
+                  example: user
                 password:
                   type: string
+                  example: '123'
+              required:
+                - username
+                - password
       responses:
         '200':
-          description: Retorna el token de acceso
+          description: Login exitoso, devuelve token JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIs...
+  /api/users/{id}:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtener usuario por ID
+      description: >-
+        Devuelve la información de un usuario específico por su ID. Requiere
+        token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID del usuario a consultar
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Información del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                    example: user
+                  status:
+                    type: string
+                    example: ACTIVO
+    put:
+      tags:
+        - Usuarios
+      summary: Actualizar usuario por ID
+      description: Actualiza un usuario existente. Requiere token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID del usuario a actualizar
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: ctrigo
+                password:
+                  type: string
+                  example: '123'
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Usuario actualizado correctamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  example: 1
+                description: Cantidad de registros actualizados
+    patch:
+      tags:
+        - Usuarios
+      summary: Actualizar parcialmente usuario por ID
+      description: >-
+        Actualiza parcialmente un usuario (por ejemplo, su status). Requiere
+        token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID del usuario a actualizar
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ACTIVO
+                    - INACTIVO
+                  example: ACTIVO
+              required:
+                - status
+      responses:
+        '200':
+          description: Usuario actualizado parcialmente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  username:
+                    type: string
+                    example: user
+                  status:
+                    type: string
+                    example: ACTIVO
+                  password:
+                    type: string
+                    example: >-
+                      $2b$10$QjTqsJLp6iD/2njoEGqIr.rgUj0dCn49o6jIqf9/bzhXk/W/XLzIK
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: '2025-12-22T21:21:39.575Z'
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    example: '2026-01-12T01:13:10.723Z'
+    delete:
+      tags:
+        - Usuarios
+      summary: Eliminar usuario por ID
+      description: Elimina un usuario existente. Requiere token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID del usuario a eliminar
+          required: true
+          schema:
+            type: integer
+            example: 3
+      responses:
+        '204':
+          description: Usuario eliminado correctamente, sin contenido en la respuesta
   /api/tasks:
+    get:
+      tags:
+        - Tareas
+      summary: Obtener lista de tareas
+      description: >-
+        Obtiene la lista de tareas del usuario autenticado con filtros
+        opcionales y paginación.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista paginada de tareas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 1
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 38
+                        name:
+                          type: string
+                          example: Estudiar
+                        done:
+                          type: boolean
+                          example: false
     post:
-      summary: Crea una nueva tarea (Ruta Protegida por JWT)
+      tags:
+        - Tareas
+      summary: Crear una nueva tarea
+      description: Crea una tarea asociada al usuario autenticado. Requiere token Bearer.
       security:
         - bearerAuth: []
       requestBody:
@@ -91,18 +324,278 @@ paths:
               properties:
                 name:
                   type: string
+                  example: Estudiar
+              required:
+                - name
       responses:
         '200':
-          description: Tarea creada vinculada al usuario del token
-  /api/users/{id}/tasks:
+          description: Tarea creada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 38
+                  name:
+                    type: string
+                    example: Estudiar
+                  done:
+                    type: boolean
+                    example: false
+                  userId:
+                    type: integer
+                    example: 4
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: '2026-01-12T01:22:37.180Z'
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    example: '2026-01-12T01:22:37.180Z'
+  /api/tasks/{id}:
     get:
-      summary: Obtiene un usuario con todas sus tareas (Relación de tablas)
+      tags:
+        - Tareas
+      summary: Obtener tarea por ID
+      description: >-
+        Devuelve la información de una tarea específica por su ID. Requiere
+        token Bearer.
+      security:
+        - bearerAuth: []
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          description: ID de la tarea a consultar
           required: true
           schema:
             type: integer
+            example: 38
       responses:
         '200':
-          description: Retorna el nombre del usuario y su arreglo de tareas
+          description: Información de la tarea
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: Estudiar
+                  done:
+                    type: boolean
+                    example: false
+    put:
+      tags:
+        - Tareas
+      summary: Actualizar tarea por ID
+      description: Actualiza completamente una tarea existente. Requiere token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la tarea a actualizar
+          required: true
+          schema:
+            type: integer
+            example: 38
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Trabajar
+              required:
+                - name
+      responses:
+        '200':
+          description: Tarea actualizada correctamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  example: 1
+                description: Cantidad de registros actualizados
+    patch:
+      tags:
+        - Tareas
+      summary: Actualizar parcialmente tarea por ID
+      description: >-
+        Actualiza parcialmente una tarea (por ejemplo, marcarla como done).
+        Requiere token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la tarea a actualizar
+          required: true
+          schema:
+            type: integer
+            example: 38
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                done:
+                  type: boolean
+                  example: true
+              required:
+                - done
+      responses:
+        '200':
+          description: Tarea actualizada parcialmente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  example: 1
+                description: Cantidad de registros actualizados
+    delete:
+      tags:
+        - Tareas
+      summary: Eliminar tarea por ID
+      description: Elimina una tarea existente. Requiere token Bearer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID de la tarea a eliminar
+          required: true
+          schema:
+            type: integer
+            example: 48
+      responses:
+        '204':
+          description: Tarea eliminada correctamente, sin contenido en la respuesta
+  /api/users/:id/tasks:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtener usuario con sus tareas
+      description: Obtiene la lista de usuario con sus tareas.
+      responses:
+        '200':
+          description: Lista de tareas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                    example: ctrigo
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: tarea 2
+                        done:
+                          type: boolean
+                          example: false
+  /api/users/list/pagination:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtener lista de usuarios
+      description: Obtiene la lista de usuarios con filtros opcionales y paginación.
+      parameters:
+        - name: limit
+          in: query
+          description: Cantidad máxima de registros por página
+          required: false
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: page
+          in: query
+          description: Número de página
+          required: false
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: orderby
+          in: query
+          description: Campo para ordenar
+          required: false
+          schema:
+            type: string
+            default: id
+            example: id
+        - name: orderDir
+          in: query
+          description: Dirección del ordenamiento (ASC o DESC)
+          required: false
+          schema:
+            type: string
+            default: DESC
+            example: DESC
+        - name: search
+          in: query
+          description: Texto para buscar dentro de los usernames
+          required: false
+          schema:
+            type: string
+            example: ctr
+        - name: status
+          in: query
+          description: Filtrar por estado del usuario
+          required: false
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+            default: active
+            example: active
+      responses:
+        '200':
+          description: Lista paginada de usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 2
+                  page:
+                    type: integer
+                    example: 1
+                  pages:
+                    type: integer
+                    example: 1
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        username:
+                          type: string
+                          example: ctrigo
+                        status:
+                          type: string
+                          example: active

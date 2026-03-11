@@ -1,139 +1,96 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 
-// 1. Función de prueba
-const getPrueba = (req, res) => {
-  res.send('hola');
-};
-
-// 2. Función de Paginación (Los 30 puntos)
 const getUsersPaginated = async (req, res) => {
   try {
-    let { 
-        page = 1, 
-        limit = 10, 
-        search = '', 
-        orderby = 'id', 
-        orderDir = 'DESC',
-        status = 'active'
-    } = req.query;
-
-    page = parseInt(page);
-    limit = parseInt(limit);
+    const { page = 1, limit = 10, search = '', orderBy = 'id', orderDir = 'DESC' } = req.query;
     const offset = (page - 1) * limit;
-
-    const validColumns = ['id', 'username', 'status'];
-    if (!validColumns.includes(orderby)) orderby = 'id';
-    orderDir = orderDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    let whereClauses = [];
-    let queryParams = [];
-
-    if (status) {
-        queryParams.push(status);
-        whereClauses.push(`status = $${queryParams.length}`);
-    }
-
-    if (search) {
-        queryParams.push(`%${search}%`);
-        whereClauses.push(`username ILIKE $${queryParams.length}`);
-    }
-
-    const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    // Contar total de registros
-    const countQuery = `SELECT COUNT(*) FROM users ${whereString}`;
-    const countResult = await pool.query(countQuery, queryParams);
-    const total = parseInt(countResult.rows[0].count);
-
-    // Obtener datos paginados
-    queryParams.push(limit, offset);
-    const dataQuery = `
-        SELECT id, username, status 
-        FROM users 
-        ${whereString} 
-        ORDER BY ${orderby} ${orderDir} 
-        LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}
+    const query = `
+      SELECT id, username, status FROM users
+      WHERE username ILIKE $1
+      ORDER BY ${orderBy} ${orderDir}
+      LIMIT $2 OFFSET $3
     `;
-    const dataResult = await pool.query(dataQuery, queryParams);
-    const pages = Math.ceil(total / limit);
-
-    // Retornar la respuesta exacta que pide Swagger
+    const countQuery = `SELECT COUNT(*) FROM users WHERE username ILIKE $1`;
+    const values = [`%${search}%`, limit, offset];
+    const result = await pool.query(query, values);
+    const countResult = await pool.query(countQuery, [`%${search}%`]);
+    
     res.status(200).json({
-        total: total,
-        page: page,
-        pages: pages,
-        data: dataResult.rows
+      total: parseInt(countResult.rows[0].count),
+      page: parseInt(page),
+      pages: Math.ceil(parseInt(countResult.rows[0].count) / limit),
+      data: result.rows
     });
-
-  } catch (error) {
-    console.error("Error en paginación:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
-
 
 const createUser = async (req, res) => {
   try {
     const { username, password } = req.body;
-
-    // Validación básica
-    if (!username || !password) {
-      return res.status(400).json({ error: "El username y el password son obligatorios" });
-    }
-
-    // Encriptar la contraseña
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Insertar en la base de datos y devolver el usuario creado
-    const query = `
-      INSERT INTO users (username, password) 
-      VALUES ($1, $2) 
-      RETURNING id, username, status, password
-    `;
-    const result = await pool.query(query, [username, hashedPassword]);
-
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, status, password, current_timestamp as "createdAt", current_timestamp as "updatedAt"',
+      [username, hashedPassword]
+    );
     res.status(200).json(result.rows[0]);
-
-  } catch (error) {
-    console.error("Error al crear usuario:", error);
-    if (error.code === '23505') {
-        return res.status(400).json({ error: "Ese username ya está en uso" });
-    }
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getUserWithTasks = async (req, res) => {
   try {
     const userId = req.params.id;
-
-
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
-    
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-  
+    if (userResult.rows.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
     const tasksResult = await pool.query('SELECT name, done FROM tasks WHERE user_id = $1', [userId]);
+    res.status(200).json({ username: userResult.rows[0].username, tasks: tasksResult.rows });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
 
+// --- NUEVOS MÉTODOS CRUD ---
 
-    res.status(200).json({
-      username: userResult.rows[0].username,
-      tasks: tasksResult.rows
-    });
+const getUsers = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, username, status FROM users');
+    const countResult = await pool.query('SELECT COUNT(*) FROM users');
+    res.status(200).json({ total: parseInt(countResult.rows[0].count), data: result.rows });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
 
-  } catch (error) {
-    console.error("Error al obtener usuario y tareas:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
+const getUserById = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT username, status FROM users WHERE id = $1', [req.params.id]);
+    res.status(200).json(result.rows[0]);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query('UPDATE users SET username = $1, password = $2 WHERE id = $3', [username, hashedPassword, req.params.id]);
+    res.status(200).json([result.rowCount]);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+const patchUser = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const result = await pool.query(
+      'UPDATE users SET status = $1 WHERE id = $2 RETURNING id, username, status, password, current_timestamp as "createdAt", current_timestamp as "updatedAt"', 
+      [status, req.params.id]
+    );
+    res.status(200).json(result.rows[0]);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.status(204).send();
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 export default {
-  getPrueba,
-  getUsersPaginated,
-  createUser,
-  getUserWithTasks 
+  getUsersPaginated, createUser, getUserWithTasks, getUsers, getUserById, updateUser, patchUser, deleteUser
 };
