@@ -492,7 +492,7 @@ paths:
       responses:
         '204':
           description: Tarea eliminada correctamente, sin contenido en la respuesta
-  //api/users/{id}/tasks:
+  /api/users/{id}/tasks:
     get:
       tags:
         - Usuarios
